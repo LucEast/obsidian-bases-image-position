@@ -1,36 +1,43 @@
 name: Release Obsidian Plugin
 
 on:
-    push:
-        branches:
-            - main
-            - beta
+  push:
+    branches:
+      - main
+      - beta
 
 jobs:
-    semantic-release:
-        runs-on: ubuntu-latest
+  semantic-release:
+    runs-on: ubuntu-latest
 
-        permissions:
-            contents: write
-            issues: write
-            pull-requests: write
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            - name: Use Node.js
-              uses: actions/setup-node@v6
-              with:
-                  node-version: 22
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
 
-            - name: Install dependencies
-              run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-            - name: Build plugin
-              run: npm run build
+      - name: Build plugin
+        run: npm run build
 
-            - name: Run Semantic Release
-              uses: cycjimmy/semantic-release-action@v4
-              env:
-                  GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      - name: Run Semantic Release
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+            @semantic-release/github
+            @semantic-release/commit-analyzer
+            @semantic-release/release-notes-generator
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
