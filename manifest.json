@@ -1,0 +1,13 @@
+{
+	"id": "bases-image-position",
+	"name": "Bases Image Position",
+	"version": "1.0.0",
+	"minAppVersion": "1.9.10",
+	"description": "Control image positioning in Obsidian Bases Card Views via frontmatter properties.",
+	"author": "Lucas Ostmann",
+	"authorUrl": "https://github.com/LucEast",
+	"fundingUrl": {
+		"GitHub Sponsor": "https://github.com/sponsors/LucEast"
+	},
+	"isDesktopOnly": false
+}

@@ -1,0 +1,28 @@
+# Build output
+main.js
+*.js.map
+
+# npm
+node_modules/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+
+# Coverage
+coverage/
+
+# Obsidian
+data.json
