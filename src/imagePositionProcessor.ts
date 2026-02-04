@@ -19,7 +19,7 @@ export class ImagePositionProcessor {
 
 	private log(message: string, ...args: unknown[]): void {
 		if (this.settings.debugMode) {
-			console.log(`[Bases Image Position] ${message}`, ...args);
+			console.debug(`[Bases Image Position] ${message}`, ...args);
 		}
 	}
 
@@ -177,7 +177,7 @@ export class ImagePositionProcessor {
 				const files = this.app.vault.getMarkdownFiles();
 				for (const file of files) {
 					const fileCache = this.app.metadataCache.getFileCache(file);
-					const frontmatterTitle = fileCache?.frontmatter?.title;
+					const frontmatterTitle = fileCache?.frontmatter?.title as string | undefined;
 					if (frontmatterTitle === title || file.basename === title) {
 						return file.path;
 					}
@@ -215,7 +215,7 @@ export class ImagePositionProcessor {
 	}
 
 	private normalizeOffsetValue(value: unknown, defaultValue: string): string {
-		if (value === undefined || value === null) {
+		if (value === undefined || value === null || (typeof value !== 'string' && typeof value !== 'number')) {
 			return defaultValue;
 		}
 

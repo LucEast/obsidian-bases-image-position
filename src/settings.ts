@@ -26,7 +26,7 @@ export class BasesImagePositionSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('Image offset X property')
+			.setName('Horizontal offset property')
 			.setDesc(`The frontmatter property for horizontal offset (default: "${DEFAULT_SETTINGS.imageOffsetXKey}")`)
 			.addText(text => text
 				.setPlaceholder(DEFAULT_SETTINGS.imageOffsetXKey)
@@ -37,7 +37,7 @@ export class BasesImagePositionSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('Image offset Y property')
+			.setName('Vertical offset property')
 			.setDesc(`The frontmatter property for vertical offset (default: "${DEFAULT_SETTINGS.imageOffsetYKey}")`)
 			.addText(text => text
 				.setPlaceholder(DEFAULT_SETTINGS.imageOffsetYKey)
@@ -85,7 +85,7 @@ export class BasesImagePositionSettingTab extends PluginSettingTab {
 		});
 
 		usageDiv.createEl('p', {
-			text: 'Note: Offset properties take precedence over the position preset.'
+			text: 'Note: offset properties take precedence over the position preset.'
 		});
 	}
 }

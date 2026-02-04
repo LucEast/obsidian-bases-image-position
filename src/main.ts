@@ -45,7 +45,7 @@ export default class BasesImagePositionPlugin extends Plugin {
 		);
 
 		if (this.settings.debugMode) {
-			console.log('[Bases Image Position] Plugin loaded');
+			console.debug('[Bases Image Position] Plugin loaded');
 		}
 	}
 
@@ -53,12 +53,12 @@ export default class BasesImagePositionPlugin extends Plugin {
 		this.processor?.stop();
 
 		if (this.settings.debugMode) {
-			console.log('[Bases Image Position] Plugin unloaded');
+			console.debug('[Bases Image Position] Plugin unloaded');
 		}
 	}
 
 	async loadSettings(): Promise<void> {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<BasesImagePositionSettings>);
 	}
 
 	async saveSettings(): Promise<void> {
