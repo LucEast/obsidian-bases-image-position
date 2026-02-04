@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/LucEast/obsidian-bases-image-position/compare/1.0.0...1.0.1) (2026-02-04)
+
+
+### Bug Fixes
+
+* Removed "Obsidian" from description ([41358ce](https://github.com/LucEast/obsidian-bases-image-position/commit/41358ce35d96ff362a68020ae18d4122e7eb937a))
+
 # 1.0.0 (2026-02-03)
 
 
