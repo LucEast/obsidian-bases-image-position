@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/LucEast/obsidian-bases-image-position/compare/1.0.1...1.0.2) (2026-02-04)
+
+
+### Bug Fixes
+
+* small compliance fixes ([8e66f5f](https://github.com/LucEast/obsidian-bases-image-position/commit/8e66f5f8e58efeab428b33bd3be7d63051087672))
+
 ## [1.0.1](https://github.com/LucEast/obsidian-bases-image-position/compare/1.0.0...1.0.1) (2026-02-04)
 
 

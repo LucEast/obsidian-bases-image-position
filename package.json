@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-bases-image-position",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"private": true,
 	"description": "Control image positioning in Obsidian Bases Card Views via frontmatter properties.",
 	"main": "main.js",
