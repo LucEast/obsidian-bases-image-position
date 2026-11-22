@@ -22,7 +22,7 @@ This is an Obsidian plugin that controls image positioning in Bases Card Views v
 
 ### Key Mechanisms
 
-- **WeakSet caching** (`processedCards`) prevents reprocessing the same card elements
+- **No per-card caching**: Bases' cards view recycles card elements as rows scroll, so any change inside a card (re-insertion, rewritten title, cover style) queues it for reprocessing on the next animation frame, and a note without a position *clears* the cover's position. `appliedPositions` (a WeakMap) only skips redundant writes, which would otherwise loop through the observer's own style mutations
 - **File path resolution** uses multiple fallback methods: `data-path` attr → `a.internal-link` href → `[data-href]` attr → title matching
 - **Position priority**: `image-offset-x`/`image-offset-y` properties override `image-position` presets
 

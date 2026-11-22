@@ -5,7 +5,17 @@ export class ImagePositionProcessor {
 	private app: App;
 	private settings: BasesImagePositionSettings;
 	private observer: MutationObserver | null = null;
-	private processedCards: WeakSet<HTMLElement> = new WeakSet();
+	/**
+	 * What was last written to each cover: the position we asked for and the
+	 * value the browser stored. Used only to skip redundant writes -- never to
+	 * skip a card. Bases' cards view virtualizes: as rows scroll out of view,
+	 * their card elements are detached and reused for the rows scrolling in, so
+	 * one element shows several notes over its lifetime and has to be
+	 * re-resolved every time its contents change.
+	 */
+	private appliedPositions: WeakMap<HTMLElement, { wanted: string; stored: string }> = new WeakMap();
+	private pendingCards: Set<HTMLElement> = new Set();
+	private frameId: number | null = null;
 
 	constructor(app: App, settings: BasesImagePositionSettings) {
 		this.app = app;
@@ -35,24 +45,39 @@ export class ImagePositionProcessor {
 			this.observer.disconnect();
 			this.observer = null;
 		}
+		if (this.frameId !== null) {
+			window.cancelAnimationFrame(this.frameId);
+			this.frameId = null;
+		}
+		this.pendingCards.clear();
 	}
 
 	private setupMutationObserver(): void {
 		this.observer = new MutationObserver((mutations) => {
 			for (const mutation of mutations) {
-				if (mutation.type === 'childList') {
-					mutation.addedNodes.forEach((node) => {
-						if (node instanceof HTMLElement) {
-							this.processElement(node);
-						}
-					});
+				if (mutation.type === 'attributes') {
+					// Bases swapping a recycled cover's image in place
+					const target = mutation.target;
+					if (target instanceof HTMLElement && target.classList.contains('bases-cards-cover')) {
+						this.queueCardContaining(target);
+					}
+					continue;
 				}
+				// A card's contents being rewritten (e.g. its title, when the card is reused)
+				this.queueCardContaining(mutation.target);
+				mutation.addedNodes.forEach((node) => {
+					if (node instanceof HTMLElement) {
+						this.processElement(node);
+					}
+				});
 			}
 		});
 
 		this.observer.observe(document.body, {
 			childList: true,
-			subtree: true
+			subtree: true,
+			attributes: true,
+			attributeFilter: ['style']
 		});
 
 		this.log('MutationObserver started');
@@ -61,14 +86,43 @@ export class ImagePositionProcessor {
 	private processElement(element: HTMLElement): void {
 		// Check if the element itself is a card item
 		if (element.classList.contains('bases-cards-item')) {
-			this.processCard(element);
+			this.queueCard(element);
 		}
 
 		// Check for card items within the element
 		const cardItems = element.querySelectorAll('.bases-cards-item');
 		cardItems.forEach((card) => {
 			if (card instanceof HTMLElement) {
-				this.processCard(card);
+				this.queueCard(card);
+			}
+		});
+	}
+
+	private queueCardContaining(node: Node): void {
+		const element = node instanceof Element ? node : node.parentElement;
+		const card = element?.closest('.bases-cards-item');
+		if (card instanceof HTMLElement) {
+			this.queueCard(card);
+		}
+	}
+
+	/**
+	 * Cards are processed on the next animation frame, once Bases has finished
+	 * filling a recycled card, and each card at most once per frame.
+	 */
+	private queueCard(card: HTMLElement): void {
+		this.pendingCards.add(card);
+		if (this.frameId !== null) {
+			return;
+		}
+		this.frameId = window.requestAnimationFrame(() => {
+			this.frameId = null;
+			const cards = Array.from(this.pendingCards);
+			this.pendingCards.clear();
+			for (const pending of cards) {
+				if (pending.isConnected) {
+					this.processCard(pending);
+				}
 			}
 		});
 	}
@@ -85,16 +139,11 @@ export class ImagePositionProcessor {
 
 	reprocessAllCards(): void {
 		this.log('Reprocessing all cards (clearing cache)');
-		this.processedCards = new WeakSet();
+		this.appliedPositions = new WeakMap();
 		this.processAllCards();
 	}
 
 	private processCard(card: HTMLElement): void {
-		// Skip if already processed
-		if (this.processedCards.has(card)) {
-			return;
-		}
-
 		const coverElement = card.querySelector('.bases-cards-cover');
 		if (!(coverElement instanceof HTMLElement)) {
 			return;
@@ -104,6 +153,7 @@ export class ImagePositionProcessor {
 		const filePath = this.getFilePathFromCard(card);
 		if (!filePath) {
 			this.log('Could not determine file path for card');
+			this.applyPosition(coverElement, null);
 			return;
 		}
 
@@ -111,25 +161,39 @@ export class ImagePositionProcessor {
 		const file = this.app.vault.getAbstractFileByPath(filePath);
 		if (!(file instanceof TFile)) {
 			this.log('File not found:', filePath);
+			this.applyPosition(coverElement, null);
 			return;
 		}
 
 		const cache = this.app.metadataCache.getFileCache(file);
-		if (!cache?.frontmatter) {
-			this.log('No frontmatter for:', filePath);
-			return;
+		const position = cache?.frontmatter ? this.calculatePosition(cache.frontmatter) : null;
+
+		// A null position still has to be applied: a reused card element would
+		// otherwise keep the previous note's position.
+		if (this.applyPosition(coverElement, position)) {
+			this.log(`Applied position "${position ?? '(default)'}" to:`, filePath);
 		}
+	}
 
-		const frontmatter = cache.frontmatter;
-		const position = this.calculatePosition(frontmatter);
-
-		if (position) {
-			coverElement.style.backgroundPosition = position;
-			this.log(`Applied position "${position}" to:`, filePath);
+	/**
+	 * Sets the cover's position, or clears it for null. Returns whether it
+	 * wrote anything. A write fires a style mutation that queues the card
+	 * again, so a cover that still holds what was last written for the same
+	 * request is left alone. The browser's stored form is compared rather than
+	 * the request (it may normalize, e.g. "right" to "100% 50%").
+	 */
+	private applyPosition(coverElement: HTMLElement, position: string | null): boolean {
+		const wanted = position ?? '';
+		const last = this.appliedPositions.get(coverElement);
+		if (last && last.wanted === wanted && last.stored === coverElement.style.backgroundPosition) {
+			return false;
 		}
-
-		// Mark as processed
-		this.processedCards.add(card);
+		if (!last && wanted === '' && coverElement.style.backgroundPosition === '') {
+			return false;
+		}
+		coverElement.style.backgroundPosition = wanted;
+		this.appliedPositions.set(coverElement, { wanted, stored: coverElement.style.backgroundPosition });
+		return true;
 	}
 
 	private getFilePathFromCard(card: HTMLElement): string | null {
@@ -244,8 +308,6 @@ export class ImagePositionProcessor {
 			if (card instanceof HTMLElement) {
 				const cardPath = this.getFilePathFromCard(card);
 				if (cardPath === file.path) {
-					// Remove from processed set to allow reprocessing
-					this.processedCards.delete(card);
 					this.processCard(card);
 				}
 			}
